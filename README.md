@@ -1,20 +1,28 @@
-## 插件功能
+这是 Typecho 主题 [MWordStar](https://www.misterma.com/archives/812/) 和 [Facile](https://www.misterma.com/archives/899/) 的辅助插件。
 
-这是 Typecho 主题 [MwordStar](https://www.misterma.com/archives/812/) 和 [Facile](https://www.misterma.com/archives/899/) 的辅助插件。
+下面是插件功能和使用说明。
 
-我的两个 Typecho 主题都有一个私密评论的功能，发布的评论只有评论者和网站管理员可以看到评论内容。
+## 解析短代码
 
-Typecho 有一个评论 RSS，可以通过 RSS 工具查看最新的评论，在 RSS 页面，任何人都可以看到私密评论。
+我的两个主题 MWordStar 和 Facile 都支持短代码和私密评论功能。
 
-由于 RSS 页面不会加载主题，所以无法通过主题控制 RSS 页面的内容。
+由于 Typecho 的 RSS 页面不会加载主题，所以无法通过主题解析短代码，只能通过插件解析短代码。
 
-这个插件的主要功能就是用来隐藏评论 RSS 页面的私密评论，私密评论会显示为 `私密评论，仅评论者和管理员可见` 。
+我的短代码插入的小组件需要主题 CSS 和 JavaScript 配合才能显示为可用的组件，RSS 不支持主题的 CSS 和 JS，在 RSS 页面，会把大多数短代码解析为 `p`，链接按钮之类的会直接解析为 `a` 链接。
+
+## 处理隐藏内容和私密评论
+
+主题支持使用 `[hide]隐藏内容[/hide]` 标记隐藏内容，这些隐藏内容在 RSS 页面也会原样输出，这个插件会把隐藏内容解析为 `隐藏内容，请进入文章页查看`。
+
+评论区的私密评论也会用 `[hide]` 包裹，在评论 RSS 页面，这些私密评论也会原样输出，这个插件也会隐藏私密评论。
 
 这就是插件目前的功能，后续一些不方便通过主题实现的功能，可能也会放到插件里。
 
 **如果你关闭了 RSS 功能，可以不需要这个插件。**
 
 注意，主题设置里隐藏 RSS 入口不会关闭 RSS，关闭 RSS 只能修改 Typecho 文件或直接在 Web 服务器设置屏蔽。
+
+
 
 ## 安装和使用
 
@@ -23,4 +31,6 @@ Typecho 有一个评论 RSS，可以通过 RSS 工具查看最新的评论，在
 把下载的压缩包拷贝到 Typecho 目录的 `usr/plugins` 目录，解压到当前文件夹，解压后应该会有一个 `MfThemePlugin-main` 的目录，把 `MfThemePlugin-main` 目录重命名为 `MfThemePlugin` 。
 
 登录 Typecho 后台，在顶部 `控制台` 菜单选择 `插件` ，进入插件管理页面可以看到 `MfThemePlugin` ，选择 `启用` 。
+
+
 
