@@ -72,7 +72,8 @@ class MfThemePlugin_Plugin implements Typecho_Plugin_Interface
      * 过滤 RSS / Feed 输出的文章内容
      *
      * 主题短代码在 RSS 页面不会解析，这里把短代码转换为 RSS 可读的内容：
-     * alert / collapse 只保留内部内容，button / badge 转为普通链接，hide 转为提示文字。
+     * alert / collapse / row / col 只保留内部内容，button / badge 转为普通链接，
+     * hide 转为提示文字，progress 转为进度文字，tabs / tab 转为“标题 + 内容”。
      * 
      * @param string $content 文章内容
      * @param Widget_Abstract_Contents $widget 内容组件
@@ -112,7 +113,7 @@ class MfThemePlugin_Plugin implements Typecho_Plugin_Interface
      */
     private static function convertShortcodes($content)
     {
-        $supportedTags = array('button', 'alert', 'collapse', 'badge', 'hide');
+        $supportedTags = array('button', 'alert', 'collapse', 'badge', 'hide', 'progress', 'tabs', 'tab', 'row', 'col');
         $pattern = '/(<pre\b[^>]*>.*?<\/pre>|<code\b[^>]*>.*?<\/code>)|\[(' . implode('|', $supportedTags)
             . ')\b([^\]]*?)\](.*?)\[\/\2\]/is';
 
@@ -131,6 +132,22 @@ class MfThemePlugin_Plugin implements Typecho_Plugin_Interface
                     return '此处是隐藏内容，请到文章页查看。';
                 }
 
+                // 进度条转为“进度: xx%”的文字
+                if ('progress' === $tag) {
+                    $value = (float)preg_replace('/[^0-9.]/', '', $inner);
+                    return '进度: ' . $value . '%';
+                }
+
+                // 选项卡：提取内部 [tab]，逐项输出“标题 + 内容”
+                if ('tabs' === $tag) {
+                    return self::renderTabs($inner);
+                }
+
+                // 单独的 [tab] 也按“标题 + 内容”输出
+                if ('tab' === $tag) {
+                    return self::renderTab($matches[3], $inner);
+                }
+
                 // button / badge 包含 url 时转为普通链接，否则只保留内部内容
                 if ('button' === $tag || 'badge' === $tag) {
                     $url = '';
@@ -143,6 +160,7 @@ class MfThemePlugin_Plugin implements Typecho_Plugin_Interface
                     }
                 }
 
+                // alert / collapse / row / col 等只保留内部内容
                 return $inner;
             }, $content);
 
@@ -154,5 +172,74 @@ class MfThemePlugin_Plugin implements Typecho_Plugin_Interface
         }
 
         return $content;
+    }
+
+    /**
+     * 把 [tabs] 内部的 [tab] 逐项转为“标题 + 内容”的文本
+     *
+     * @param string $inner [tabs] 内部的原始内容
+     * @return string
+     */
+    private static function renderTabs($inner)
+    {
+        if (!preg_match_all('/\[tab\b([^\]]*?)\](.*?)\[\/tab\]/is', $inner, $tabMatches)) {
+            // 没有解析到 tab 时，仅去掉 tabs 包裹标记，内部内容交给后续循环继续处理
+            return $inner;
+        }
+
+        $parts = array();
+        foreach ($tabMatches[1] as $index => $attrString) {
+            $title = self::parseTabTitle($attrString, $index + 1);
+            $content = self::cleanTabContent($tabMatches[2][$index]);
+            $parts[] = '<strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</strong><br><br>' . $content;
+        }
+
+        return implode('<br><br>', $parts);
+    }
+
+    /**
+     * 把单个 [tab] 转为“标题 + 内容”的文本
+     *
+     * @param string $attrString tab 的属性字符串
+     * @param string $inner      tab 内部内容
+     * @return string
+     */
+    private static function renderTab($attrString, $inner)
+    {
+        $title = self::parseTabTitle($attrString, 1);
+        return '<strong>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</strong><br><br>'
+            . self::cleanTabContent($inner);
+    }
+
+    /**
+     * 解析 tab 的 title 属性，未指定时使用默认标题
+     *
+     * @param string $attrString   tab 的属性字符串
+     * @param int    $defaultIndex 默认标题序号
+     * @return string
+     */
+    private static function parseTabTitle($attrString, $defaultIndex)
+    {
+        $title = 'Tab ' . $defaultIndex;
+        if (preg_match_all('/(\w+)\s*=\s*(["\'])(.*?)\2/i', $attrString, $attrMatches)) {
+            foreach ($attrMatches[1] as $index => $key) {
+                if (strtolower($key) === 'title') {
+                    $title = $attrMatches[3][$index];
+                    break;
+                }
+            }
+        }
+        return $title;
+    }
+
+    /**
+     * 清理 tab 内容：去掉首尾空白以及首尾多余的 <br>
+     *
+     * @param string $content
+     * @return string
+     */
+    private static function cleanTabContent($content)
+    {
+        return preg_replace('/^<br\s*\/?>|<br\s*\/?>$/i', '', trim($content));
     }
 }
